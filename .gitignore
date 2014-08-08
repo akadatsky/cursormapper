@@ -1,0 +1,7 @@
+/.idea
+/*.apk
+/bin
+/gen
+/out
+*.iml
+*.properties
