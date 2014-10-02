@@ -1,4 +1,4 @@
-##cursormapper
+## cursormapper
 
 A ready-to-use library for android to map your cursor into set of objects.
 
@@ -54,26 +54,30 @@ public class DogModel {
 Second, in your class which wraps database job (the one that `extends SQLiteOpenHelper`) - add this:
 
 ```java
-	private static final CursorMapper<DogModel> dogMapper = CursorMapper.create(DogModel.class);
+private static final CursorMapper<DogModel> dogMapper = CursorMapper.create(DogModel.class);
 ```
 
 The last step - use one of CursorMapper's methods map, mapInto, mapSingle, mapRow:
 
 ```java
-	public DogModel getDog(String id) {
-    	Cursor cursor = getReadableDatabase().query(
-          "DOG",
-          new String[]{"_id"},
-          "_id = ?",
-          new String[]{id},
-          null /* group by */,
-          null /* having */,
-          null /* order by */);
-    	return dogMapper.mapSingle(cursor);
-	}
-    
-    public List<DogModel> getAllDogs() {
-    	Cursor cursor = getReadableDatabase().rawQuery("SELECT * FROM " + "DOG", null);
-    return dogMapper.map(cursor);
-	}
+public DogModel getDog(String id) {
+  	Cursor cursor = getReadableDatabase().query(
+        "DOG",
+        new String[]{"_id"},
+        "_id = ?",
+        new String[]{id},
+        null /* group by */,
+        null /* having */,
+        null /* order by */);
+  	return dogMapper.mapSingle(cursor);
+}
+  
+  public List<DogModel> getAllDogs() {
+  	Cursor cursor = getReadableDatabase().rawQuery("SELECT * FROM " + "DOG", null);
+  return dogMapper.map(cursor);
+}
 ```
+
+### Sample project
+
+There's a sample project that can give you a bigger picture on how to use cursormapper. For details - see [UserDatabaseExample](https://github.com/akadatsky/UserDatabaseExample).
