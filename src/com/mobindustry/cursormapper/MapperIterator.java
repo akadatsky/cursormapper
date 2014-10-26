@@ -19,7 +19,7 @@ class MapperIterator<T> implements CloseableIterator<T> {
     this.cursorMapper = cursorMapper;
     this.cursor = cursor;
     cursor.moveToFirst();
-    this.columnIndexes = cursorMapper.loadColumnIndeces(cursor);
+    this.columnIndexes = cursorMapper.loadColumnIndexes(cursor);
   }
 
   @Override

@@ -17,7 +17,17 @@ import java.util.Date;
 import java.util.List;
 import java.util.TimeZone;
 
-
+/**
+ * This class will handle all job with cursor from your database.
+ * Use static method {@link com.mobindustry.cursormapper.CursorMapper#create(Class)} to invoke.<br>
+ * To get objects with data call one of following methods:
+ * {@link com.mobindustry.cursormapper.CursorMapper#map(android.database.Cursor)},
+ * {@link com.mobindustry.cursormapper.CursorMapper#mapInto(android.database.Cursor, java.util.Collection)},
+ * {@link com.mobindustry.cursormapper.CursorMapper#mapSingle(android.database.Cursor)},
+ * {@link com.mobindustry.cursormapper.CursorMapper#mapRow(android.database.Cursor)}.
+ *
+ * @param <T> class definition for future collection of objects with data from cursor.
+ */
 public class CursorMapper<T> {
 
   final ObjectFactory<T> factory;
@@ -53,6 +63,12 @@ public class CursorMapper<T> {
     getFields(recordClass.getSuperclass(), fields);
   }
 
+    /**
+     * Static initializer.
+     * @param recordClass data type class definition.
+     * @param <T> type of objects to work with.
+     * @return new {@link com.mobindustry.cursormapper.CursorMapper} for objects of given type.
+     */
   public static <T> CursorMapper<T> create(final Class<T> recordClass) {
 
     return new CursorMapper<T>(recordClass, new ObjectFactory<T>() {
@@ -90,7 +106,7 @@ public class CursorMapper<T> {
    */
   public <C extends Collection<T>> C mapInto(Cursor cursor, C result) {
     try {
-      int[] columnIndexes = loadColumnIndeces(cursor);
+      int[] columnIndexes = loadColumnIndexes(cursor);
       cursor.moveToFirst();
       while (!cursor.isAfterLast()) {
         T instance = factory.newInstance();
@@ -122,7 +138,7 @@ public class CursorMapper<T> {
   }
 
   /** Get an array which holds the column index for each field of T. */
-  int[] loadColumnIndeces(Cursor cursor) {
+  int[] loadColumnIndexes(Cursor cursor) {
     int[] result = new int[fields.length];
     for (int i = 0; i < fields.length; i++) {
       Field field = fields[i];
@@ -135,6 +151,13 @@ public class CursorMapper<T> {
     return result;
   }
 
+    /**
+     * Determine type of field with given index and get it's value.
+     * @param type type of field.
+     * @param cursor data obtained from database.
+     * @param columnIndex current column's index.
+     * @return value of field at given index.
+     */
   Object getValue(Class<?> type, Cursor cursor, int columnIndex) {
     if (type == String.class) {
       return cursor.getString(columnIndex);
@@ -229,7 +252,7 @@ public class CursorMapper<T> {
   public T mapRow(Cursor cursor) {
     try {
       T instance = factory.newInstance();
-      int[] columnIndeces = loadColumnIndeces(cursor);
+      int[] columnIndeces = loadColumnIndexes(cursor);
       for (int i = 0; i < fields.length; i++) {
         Field field = fields[i];
         if (columnIndeces[i] != -1) {
@@ -272,5 +295,4 @@ public class CursorMapper<T> {
     runPostMapHooks(instance);
     return instance;
   }
-
 }
