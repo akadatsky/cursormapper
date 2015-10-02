@@ -2,6 +2,7 @@ package com.mobindustry.cursormapper;
 
 import android.database.Cursor;
 import android.database.sqlite.SQLiteException;
+import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -14,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Currency;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.TimeZone;
 
@@ -30,11 +32,40 @@ import java.util.TimeZone;
  */
 public class CursorMapper<T> {
 
-  final ObjectFactory<T> factory;
-  Field[] fields;
-  private Method[] postMapHooks;
+    /**
+     * you have to implement this interface in your code
+     */
+    public interface HowToParseClass {
+        String VALUE_PARAM = "VALUE_PARAM";
 
-  public CursorMapper(Class<T> recordClass, ObjectFactory<T> factory) {
+        /**
+         * @param classX          - your class
+         * @param cursorFieldType - Cursor.FIELD_TYPE_* value, expected value from database
+         * @param value           - Bundle with value in cursor/database, you have to convert this value to your class object, use VALUE_PARAM to extract it from Bundle
+         *                        if value is null - use correct CursorFieldType param (see {@link #getValue(Class, Cursor, int)})
+         * @return instance of your class
+         */
+        Object getValueByFieldType(Class classX, int cursorFieldType, Bundle value);
+    }
+
+    protected final ObjectFactory<T> factory;
+    protected Field[] fields;
+    protected Method[] postMapHooks;
+    protected HashMap<Class, HowToParseClass> valueCustomTypesMap;
+
+    /**
+     * If you want to parse some your data from cursor/database and get your class by parsed data
+     * then you can call method addHowToParseForCustomClass
+     *
+     * @param aClass          - your custom class which you want to get
+     * @param howToParseClass - interface which explain how to parse database data in your class
+     */
+    public void addHowToParseForCustomClass(Class aClass, HowToParseClass howToParseClass) {
+        valueCustomTypesMap.put(aClass, howToParseClass);
+    }
+
+    public CursorMapper(Class<T> recordClass, ObjectFactory<T> factory) {
+    this.valueCustomTypesMap = new HashMap<>();
     this.factory = factory;
     List<Field> fields = new ArrayList<Field>();
     getFields(recordClass, fields);
@@ -49,10 +80,10 @@ public class CursorMapper<T> {
         }
       }
     }
-    this.postMapHooks = postMapHooks.toArray(new Method[postMapHooks.size()]);
+        this.postMapHooks = postMapHooks.toArray(new Method[postMapHooks.size()]);
   }
 
-  private void getFields(Class<?> recordClass, List<Field> fields) {
+  protected void getFields(Class<?> recordClass, List<Field> fields) {
     if (recordClass.equals(Object.class)) {
       return;
     }
@@ -137,8 +168,8 @@ public class CursorMapper<T> {
     }
   }
 
-  /** Get an array which holds the column index for each field of T. */
-  int[] loadColumnIndexes(Cursor cursor) {
+    /** Get an array which holds the column index for each field of T. */
+  protected int[] loadColumnIndexes(Cursor cursor) {
     int[] result = new int[fields.length];
     for (int i = 0; i < fields.length; i++) {
       Field field = fields[i];
@@ -158,8 +189,23 @@ public class CursorMapper<T> {
      * @param columnIndex current column's index.
      * @return value of field at given index.
      */
-  Object getValue(Class<?> type, Cursor cursor, int columnIndex) {
-    if (type == String.class) {
+    protected Object getValue(Class<?> type, Cursor cursor, int columnIndex) {
+        if (valueCustomTypesMap.containsKey(type)) {
+            HowToParseClass howToParseClass = valueCustomTypesMap.get(type);
+            int typeOfColumn = cursor.getType(columnIndex);
+            Bundle bundle = new Bundle();
+            if (typeOfColumn == Cursor.FIELD_TYPE_FLOAT) {
+                bundle.putDouble(HowToParseClass.VALUE_PARAM, cursor.getDouble(columnIndex));
+            } else if (typeOfColumn == Cursor.FIELD_TYPE_INTEGER) {
+                bundle.putInt(HowToParseClass.VALUE_PARAM, cursor.getInt(columnIndex));
+            } else if (typeOfColumn == Cursor.FIELD_TYPE_STRING) {
+                bundle.putString(HowToParseClass.VALUE_PARAM, cursor.getString(columnIndex));
+            } else {
+                bundle = null;
+            }
+            return howToParseClass.getValueByFieldType(type,typeOfColumn, bundle);
+    }
+    else if (type == String.class) {
       return cursor.getString(columnIndex);
     } else if (type == int.class || type == Integer.class) {
       if (TextUtils.isEmpty(cursor.getString(columnIndex))) {
@@ -262,11 +308,11 @@ public class CursorMapper<T> {
       runPostMapHooks(instance);
       return instance;
     } catch (IllegalAccessException e) {
-      throw new RuntimeException(e);
+        throw new RuntimeException(e);
     }
   }
 
-  void runPostMapHooks(T instance) {
+  protected void runPostMapHooks(T instance) {
     for (Method postMapHook : postMapHooks) {
       try {
         postMapHook.invoke(instance);
